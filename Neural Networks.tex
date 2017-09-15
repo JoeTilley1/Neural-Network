@@ -120,11 +120,13 @@ C(\mathbf{w},\mathbf{b})= \frac{1}{2n} \sum_{\mathbf{x} \in T}\lVert N(\mathbf{w
 where $n=|T|$ is the number of training tuples, and $N(\mathbf{w},\mathbf{b},\mathbf{x})$ is the output of the network given those weights, biases and input vector, i.e. $\mathbf{x}_{\ell}$ the activation output from the final layer $\ell$. We minimise this function by our choice of $\mathbf{w}$ and $\mathbf{b}$. Other cost functions can be chosen, and we will explore this later.\par
 The function is too complicated to find the global derivative of, so we use a method of steepest gradient descent. Suppose we are given weights and biases $(\mathbf{w}_n, \mathbf{b}_n)$, and we want to iterate to find a new set of weights and biases such that
 \[
+
 C(\mathbf{w}_{k+1}, \mathbf{b}_{k+1}) \leq C(\mathbf{w}_k, \mathbf{b}_k)
 \]
 Gradient descent tell us that if we let
 \[
 (\mathbf{w}_{k+1}, \mathbf{b}_{k+1}) = (\mathbf{w}_k, \mathbf{b}_k) - \eta \nabla C (\mathbf{w}_{k}, \mathbf{b}_{k})
+
 \]
 for sufficiently small $\eta>0$, the \textit{learning rate}. This will work, since
 \[
@@ -136,11 +138,13 @@ Our task now is to compute $\nabla C$, the gradient of $C$. However, this is no 
 \]
 where $C_\mathbf{x} = \frac{1}{2}\lVert N(\mathbf{w},\mathbf{b},\mathbf{x}) - \mathbf{y_x}\rVert ^2$. In particular, the iteration for any given weight $w_n$ from the weights $\mathbf{w}_n$ or bias $b_n$ from the biases $\mathbf{b}_n$ is given by
 \[
+
 w_{k+1} = w_k - \frac{\eta}{|T'|} \sum_{\mathbf{x} \in T'} \frac{\partial C_{\mathbf{x}}}{\partial w_n}
 \]
 and
 \[
 b_{k+1} = b_k - \frac{\eta}{|T'|} \sum_{\mathbf{x} \in T'} \frac{\partial C_{\mathbf{x}}}{\partial b_n}
+
 \]
 The question now is: how do we calculate the values of $\frac{\partial C_{\mathbf{x}}}{\partial w_n}$ and $\frac{\partial C_{\mathbf{x}}}{\partial b_n}$? This will introduce an entirely new chapter, so we shall present the code for stochastic gradient descent, leaving blank these values which we will fill in later.
 \begin{lstlisting}[language=Python, breaklines, basicstyle=\small]
@@ -345,6 +349,7 @@ Softmax is an alternative approach to solving the learning slowdown. We modify t
 x^{L}_i = \frac{e^{z^L_i}}{\sum_k e^{z^L_k}}
 \]
 where $\sum_k$ is the sum over all final layer neurons. Clearly, the sum of the output activations is $1$. This makes using the softmax function most useful for cases where the outputs should be considered as a probability distribution, e.g. likelihood of horse to win a race. In this sense, we modify the cost function (for a single training value) to the log-likelihood cost function
+
 \[
 C(\mathbf{w},\mathbf{b})= -\log x^L_*
 \]
@@ -386,6 +391,7 @@ where $\textbf{w}$ is a vector of all weights (in any order). We call $\lambda >
 \] 
 and
 \[
+
 \frac{\partial C}{\partial b} = \frac{\partial C_0}{\partial b}
 \]
 Note the bias term remains unchanged. Nielsen gives another set of fantastic graphs continuing his example, showing that adding this regularization term does indeed increase the accuracy and remove overfitting, which can again be seen in his book \href{http://neuralnetworksanddeeplearning.com/chap3.html}{here}. \par
@@ -542,6 +548,7 @@ With no regularization parameter, our validation data has an accuracy of 200/350
 At this point, I'd like to make the network have a more complicated structure, though this frequently gave the errors I discussed. I did see some marginal improvements using a hidden layer of 10 neurons, though the highest classification accuracy I ever managed to achieve was roughly 70$\%$, nowhere near high  classification accuracies (95$\%$ ore more) people have achieved. \par
 Neural networks can certainly be used to classify genders by voice. There are interesting kernels on the Kaggle thread using Tensorflow to devise a neural network which classifies them, and achieves a classification accuracy of 96$\%$. Perhaps this exercise has been useful if only to highlight the frustrations of finding hyper parameters (sometimes being so frustratingly time consuming to find optimal values that other machine learning methods become more useful, just because of how much quicker they are) and that using something such as Tensorflow is probably a better idea and more structured.
 
+
 \begin{thebibliography}{9}
 	\bibitem{nielsen}
 	Michael Nielsen.
@@ -549,6 +556,7 @@ Neural networks can certainly be used to classify genders by voice. There are in
 	2017.
 	URL \url{http://neuralnetworksanddeeplearning.com/index.html}.
 	[Accessed: 6\textsuperscript{th} July 2017].
+
 	
 	\bibitem{kaggle}
 	Kaggle.
