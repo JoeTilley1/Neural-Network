@@ -120,11 +120,13 @@ C(\mathbf{w},\mathbf{b})= \frac{1}{2n} \sum_{\mathbf{x} \in T}\lVert N(\mathbf{w
 where $n=|T|$ is the number of training tuples, and $N(\mathbf{w},\mathbf{b},\mathbf{x})$ is the output of the network given those weights, biases and input vector, i.e. $\mathbf{x}_{\ell}$ the activation output from the final layer $\ell$. We minimise this function by our choice of $\mathbf{w}$ and $\mathbf{b}$. Other cost functions can be chosen, and we will explore this later.\par
 The function is too complicated to find the global derivative of, so we use a method of steepest gradient descent. Suppose we are given weights and biases $(\mathbf{w}_n, \mathbf{b}_n)$, and we want to iterate to find a new set of weights and biases such that
 \[
-C(\mathbf{w}_{n+1}, \mathbf{b}_{n+1}) \leq C(\mathbf{w}_n, \mathbf{b}_n)
+
+C(\mathbf{w}_{k+1}, \mathbf{b}_{k+1}) \leq C(\mathbf{w}_k, \mathbf{b}_k)
 \]
 Gradient descent tell us that if we let
 \[
-(\mathbf{w}_{n+1}, \mathbf{b}_{n+1}) = (\mathbf{w}_n, \mathbf{b}_n) - \eta \nabla C (\mathbf{w}_{n}, \mathbf{b}_{n})
+(\mathbf{w}_{k+1}, \mathbf{b}_{k+1}) = (\mathbf{w}_k, \mathbf{b}_k) - \eta \nabla C (\mathbf{w}_{k}, \mathbf{b}_{k})
+
 \]
 for sufficiently small $\eta>0$, the \textit{learning rate}. This will work, since
 \[
@@ -136,11 +138,13 @@ Our task now is to compute $\nabla C$, the gradient of $C$. However, this is no 
 \]
 where $C_\mathbf{x} = \frac{1}{2}\lVert N(\mathbf{w},\mathbf{b},\mathbf{x}) - \mathbf{y_x}\rVert ^2$. In particular, the iteration for any given weight $w_n$ from the weights $\mathbf{w}_n$ or bias $b_n$ from the biases $\mathbf{b}_n$ is given by
 \[
-w_{n+1} = w_n - \frac{\eta}{|T'|} \sum_{\mathbf{x} \in T'} \frac{\partial C_{\mathbf{x}}}{\partial w_n}
+
+w_{k+1} = w_k - \frac{\eta}{|T'|} \sum_{\mathbf{x} \in T'} \frac{\partial C_{\mathbf{x}}}{\partial w_n}
 \]
 and
 \[
-b_{n+1} = b_n - \frac{\eta}{|T'|} \sum_{\mathbf{x} \in T'} \frac{\partial C_{\mathbf{x}}}{\partial b_n}
+b_{k+1} = b_k - \frac{\eta}{|T'|} \sum_{\mathbf{x} \in T'} \frac{\partial C_{\mathbf{x}}}{\partial b_n}
+
 \]
 The question now is: how do we calculate the values of $\frac{\partial C_{\mathbf{x}}}{\partial w_n}$ and $\frac{\partial C_{\mathbf{x}}}{\partial b_n}$? This will introduce an entirely new chapter, so we shall present the code for stochastic gradient descent, leaving blank these values which we will fill in later.
 \begin{lstlisting}[language=Python, breaklines, basicstyle=\small]
@@ -160,7 +164,7 @@ def evaluate(self, test_data):
 	for (x,y) in test_data:
 		network_ans = self.feedforward(x)[1]
 		real_ans = y
-		if network_ans.index(max(network_ans)) == real_ans.index(max(real_ans)):
+		if np.argmax(network_ans) == np.argmax(real_ans):
 			xy_works = 1
 		else:
 			xy_works = 0
@@ -334,13 +338,18 @@ def dCdx_L(x, y):
 	y is column vector of true outputs.'''
 	return np.divide(np.add(x,-y),np.multiply(x,np.add(1,-x)))
 \end{lstlisting}
+A cheaper way would be to simply modify the error to be
+\begin{lstlisting}[language=Python, breaklines, delta = [x_L - y]
+\end{lstlisting}
+in the backpropogation algorithm.
 
 \subsection{Softmax}
 Softmax is an alternative approach to solving the learning slowdown. We modify the output of the final layer of neurons by using the \textit{softmax function} instead of the sigmoid function. We let the output of the $i^{\text{th}}$ neuron of the final layer be
 \[
 x^{L}_i = \frac{e^{z^L_i}}{\sum_k e^{z^L_k}}
 \]
-where $\sum_i$ is the sum over all final layer neurons. Clearly, the sum of the output activations is $1$. This makes using the softmax function most useful for cases where the outputs should be considered as a probability distribution, e.g. likelihood of horse to win a race. In this sense, we modify the cost function (for a single training value) to the log-likelihood cost function
+where $\sum_k$ is the sum over all final layer neurons. Clearly, the sum of the output activations is $1$. This makes using the softmax function most useful for cases where the outputs should be considered as a probability distribution, e.g. likelihood of horse to win a race. In this sense, we modify the cost function (for a single training value) to the log-likelihood cost function
+
 \[
 C(\mathbf{w},\mathbf{b})= -\log x^L_*
 \]
@@ -367,7 +376,7 @@ This is exactly the same as the cross-entropy function, and so the partial deriv
 
 \subsection{Overfitting/Overtraining}
 One problem we can encounter is choosing a training data set which is too small (this was slightly overlooked in the previous section: typically we have training data which the network learns from, and then we test the trained network on some test data which the network has never seen before and does not learn from, just to test how smart the network has become). Nielsen provides some interesting graphs using the handwritten digits example, which I'd suggest looking at \href{http://neuralnetworksanddeeplearning.com/chap3.html}{here}. When using a small training data set, whilst the cost of the training data decreases smoothly (as expected due to our gradient descent) and the classification accuracy increases smoothly (though reaching near 100$\%$ accuracy early on), the same cannot be said for the test data. Instead, the classification accuracy levels off after a point. Furthermore, the cost starts to increase even! Why does this happen? It's because the network has experienced \textit{overfitting} or \textit{overtraining} to the training data; intuitively speaking, it hasn't had enough exposure to the various situations (input types) that can occur to know how to generalise to give an accurate result to them. \par
-To prevent overfitting, we keep another set of data called the \textit{validation data}. We train the network on the training data until our accuracy has saturated on the validation data, where we stop training the network. We will end up testing all types of hyper-parameters such as mini batch size, learning rate, network structure, etc. We can choose the best ones by seeing which gives the highest accuracy (after saturation) on the validation data. So why use the validation data? If we used the test data, we could end up simply picking hyper-parameters that happen to work very well for the test data but don't in general, i.e. we have overfitted the hyper-parameters to the test data. Instead, we do this on the validation data, choose the hyper-parameters, then evaluate using the test data to see how well the network generalises to totally unseen data. This is called the \textit{hold out method}.
+To prevent overfitting, we keep another set of data called the \textit{validation data}. We train the network on the training data until our accuracy has saturated on the validation data (which determining can be somewhat difficult in itself), where we stop training the network. We will end up testing all types of hyper-parameters such as mini batch size, learning rate, network structure, etc. We can choose the best ones by seeing which gives the highest accuracy (after saturation) on the validation data. So why use the validation data? If we used the test data, we could end up simply picking hyper-parameters that happen to work very well for the test data but don't in general, i.e. we have overfitted the hyper-parameters to the test data. Instead, we do this on the validation data, choose the hyper-parameters, then evaluate using the test data to see how well the network generalises to totally unseen data. This is called the \textit{hold out method}.
 
 \subsection{Regularization}
 If you can't change the network structure (by reducing the number of neurons) or get more training data, we can reduce the overfitting by a method of \textit{regularization}. There are many types of regularization, so we shall explore several of these (indeed, regularization serves an entire area of mathematics). 
@@ -382,9 +391,163 @@ where $\textbf{w}$ is a vector of all weights (in any order). We call $\lambda >
 \] 
 and
 \[
-\frac{\partial C}{\partial n} = \frac{\partial C_0}{\partial b}
+
+\frac{\partial C}{\partial b} = \frac{\partial C_0}{\partial b}
 \]
-Note the bias term remains unchanged. Nielsen gives another set of fantastic graphs continuing his example, showing that adding this regularization term does indeed increase the accuracy and remove overfitting, which can again be seen in his book \href{http://neuralnetworksanddeeplearning.com/chap3.html}{here}.
+Note the bias term remains unchanged. Nielsen gives another set of fantastic graphs continuing his example, showing that adding this regularization term does indeed increase the accuracy and remove overfitting, which can again be seen in his book \href{http://neuralnetworksanddeeplearning.com/chap3.html}{here}. \par
+Programming this isn't too difficult. Recalling section 1.2 and looking at how the stochastic gradient descent works, we only need to modify the iteration rules to match our new cost function and partial derivative with respect to weights. Now, we have
+\[
+w_{k+1} = w_k - \frac{\eta}{|T'|} \sum_{\mathbf{x} \in T'} \frac{\partial C_{\mathbf{x}}}{\partial w_k}
+=
+\left(1 - \frac{\lambda\eta}{n}\right)w_k - \frac{\eta}{|T'|} \sum_{\mathbf{x} \in T'} \frac{\partial C_{0_\mathbf{x}}}{\partial w_k}
+\]
+So, we just need to include the variable $\lambda$ and change one line in the stochastic gradient descent function
+\begin{lstlisting}[language=Python, breaklines, basicstyle=\small]
+def SGD(self, training_data, epochs, mini_batch_size, eta, lam, test_data):
+	'''Completes the method of stochastic gradient descent'''
+	for n in range(epochs):
+	mini_batch = random.sample(training_data, mini_batch_size)
+	[dCdb, dCdw] = self.backpropogation(mini_batch)
+	self.biases = [np.add(b,np.multiply(-(eta/mini_batch_size),Cb)) for b, Cb in zip(self.biases, dCdb)]
+	self.weights = [np.add(np.multiply(1-lam*eta/len(test_data),w),np.multiply(-(eta/mini_batch_size),Cw)) for w, Cw in zip(self.weights, dCdw)]
+	print("Epoch {0}: {1} / {2}".format(n, self.evaluate(test_data), len(test_data)))
+\end{lstlisting}
+\par
+Why does regularization work? This is quite a difficult question to answer concisely. It should be obvious that adding the regularization term to the cost function will mean the network will have smaller weights than if the term were not there. Smaller weights means that the behaviour of the network will change less than larger weights, and so provides a simpler model which generalises better and avoids learning the peculiarities of the training data (c.f. a roughly linear set of data is modelled well by a simple line v.s. high order Lagrange polynomial which generalises badly). It is a bit of a leap of faith to suggest that simple models are the `correct' models, since complex models sometimes are needed, though this is extremely unlikely in the case of a small training data set which suffers from overfitting. Note that the biases are not included in the regularisation term since these do not make neurons sensitive to their inputs, so it would be unnecessary.
+
+\subsubsection{$L_1$ regularization}
+As expected, we add the regularization term
+\[
+\frac{\lambda}{n}\|\textbf{w}\|_{\ell_1}
+\]
+to the cost term. This will work in exactly the same way as $L_2$ regularization, however the partial derivative  with respect to the weights now becomes
+\[
+\frac{\partial C}{\partial w} = \frac{\partial C_0}{\partial w} + \frac{\lambda}{n}\text{sgn}(w)
+\]
+so gradient descent occurs the same for all weights irrespective of how large or small the weight is, unlike in $L_2$-regularization. This type of regularization generally gives lots of small and large weights, whereas $L_2$ regularization gives a more rounded set of weights. This should be expected: $L_1$ regularization will make the weights close to zero in a $\|\cdot\|_{\ell_1}$ sense and  $L_2$ regularization will make the weights close to zero in a $\|\cdot\|_{\ell_2}$ sense, i.e. a Euclidean sense. Programming this is equally as easy, as we now have
+\[
+w_{k+1}
+=
+w_k - \frac{\lambda\eta}{n}\text{sgn}(w_k) - \frac{\eta}{|T'|} \sum_{\mathbf{x} \in T'} \frac{\partial C_{0_\mathbf{x}}}{\partial w_k}
+\]
+so
+\begin{lstlisting}[language=Python, breaklines, basicstyle=\small]
+self.weights = [np.add(np.add(w,-lam*eta*np.sign(w)/len(test_data)),np.multiply(-(eta/mini_batch_size),Cw)) for w, Cw in zip(self.weights, dCdw)]
+\end{lstlisting}
+
+\subsubsection{Dropout}
+I will very briefly introduce the idea of \textit{dropout}. Given a neural network, we decide to randomly remove some of the hidden neurons and their connections, and train the network. We then place back in the neurons and their connections, remove others at random, and start the process again. Once we have done repeating this, we reduce all the weights and biases by a proportion of how many were removed (i.e. removing half the neurons means we half all the weights and biases).\par
+This method seems completely random. The logic behind its reasoning is that it prevents neurons from relying on any other neurons, and forces them to learn more robustly in conjunction with other neurons. It can also be thought of as training various, random neural networks (which will train differently and overfit differently based on the random weights and biases which it starts with), and then averaging these, which should reduce any individual overfitting effects from a given neural network.
+
+\subsubsection{Artificially expanding the training data}
+This will again be a brief discussion, the title says it all really. We prevent overfitting by having a large set of training data, but this is often costly and not always possible. Instead, we can expand the training data artificially. Doing this depends entirely what the context of the training data is. In Nielsen's example, we use photos of handwritten digits, and these can be expanded by small rotations, translation, distortions (particularly those that mimic spasms in hands when writing) or adding background noise. We can quite easily expand the data set thousand-fold or even more by doing this. For other examples, you'll have to think for yourself! The key idea is expand the data set in a way which reflects real world operations.
+
+\subsection{Weight Initialization}
+We have been using randomly chosen weights and biases using a normal distribution with mean 0 and standard deviation of 1. However, this results in lots of saturated neurons. For example, if we have a binary input layer with $n_{in}$ neurons on, using our current method, we end up with a weight input distributed normally with mean 0 and standard deviation $\sqrt{n_{in}+1}$, as we have summed all the distributions. This is quite a large standard deviation, so we can end up with extreme values for the weight input, which we know results in saturated neurons. To counter this, we initialize the weights as follows: $w_{ij}^{(\ell+1)}$, the weight between perceptron $j$ in level $\ell$ to perceptron $i$ in level $\ell+1$, is chosen from a normal distribution with mean 0 and standard deviation $\frac{1}{\sqrt{n_{in}}}$ where $n_{in}$ is the number of weights into  perceptron $i$ in level $\ell+1$ (in a complete network, this is equal to the number of neurons in level $\ell$). Now the weight input will be more like a normal distribution with standard deviation nearer to 1 (in fact, it would be exactly 1 if the outputs of level $\ell$ were all 1.) This isn't optimal, but does a good job of improving the issue, and can be experimentally shown to improve accuracy. Choosing the bias has negligible effect on the issue, and can actually be chosen as all zeroes. \par
+Programming this is extremely simple, as
+\begin{lstlisting}[language=Python, breaklines, basicstyle=\small]
+self.biases = [np.zeros(sizes[n+1], 1) for n in range(len(sizes)-1)]
+self.weights = [np.random.normal(0, np.divide(1,np.sqrt(sizes[n])), (sizes[n+1], sizes[n])) for n in range(len(sizes)-1)]
+\end{lstlisting}
+
+\subsection{Hyper Parameters}
+We have encountered many hyper parameters throughout our journey: choice of network structure, regularization parameter $\lambda$, mini batch size $|T'|$, learning rate $\eta$. Without good choices for these values, the network will never learn and will act randomly. The task is to find values that will have any kind of learning to start with which is better than pure chance, and then we can apply more specific methods to improve certain hyper parameters. The best method is to start with very basic structures and training values, saving a lot of time, and making things more complicated from there. This might seem strange, since adjusting one hyper parameter could have a dramatic impact on the others, and we begin a wild goose chase of tweaking hyper parameters which change the optimal value of others, however this will essentially be the method. Finding optimal values is often too difficult, and getting good values is an achievement in itself.
+
+\subsubsection{Early stopping}
+Instead of worrying about choosing the number of epochs, we will stop the network from learning when the validation accuracy stops increasing. This will immediately prevent overfitting. The question becomes: how do we know when the validation accuracy has stopped improving? There are various methods which answer this. One is to terminate the algorithm if the validation accuracy does not increase after $x$ epochs, where $x$ is to be chosen (Nielsen uses $x=10$). This introduces a new hyper parameter to optimise!
+
+\subsubsection{Learning rate}
+Thinking of learning rate as size of steps during a gradient descent, if we choose a rate too large, the descent will be chaotic. However a rate too large, whilst in general reducing the cost, will also act with slightly random behaviour and can sometimes increase the cost. Hence, we choose the initial rate to have the order of magnitude of the largest rate at which the cost (on the validation data) doesn't increase or oscillate. We can choose this more precisely if we wish to. \par
+After the cost has reduced to a relatively small level, we will want to decrease the learning rate (imagine wanting to reach the precise bottom of a bunker but being forced to take metre steps). Hence, we will want a learning schedule, where we continually decrease the learning rate when the cost/accuracy no longer decreases. This schedule gives an infinite number of choices of hyper parameters, however a simple one could be to half the learning rate once the cost/accuracy no longer decreases (using early stopping).
+
+\subsubsection{Regularization parameter}
+Nielsen suggests using no regularisation parameter and determining the learning rate first. Then, much like the learning rate, we try to determine the order of magnitude of $\lambda$ by increasing or decreasing by multiples of ten which improve the validation accuracy, and then fine tuning the value.
+
+\subsubsection{Mini batch size}
+Mini batch size is quite independent of other hyper parameters, so finding an optimal value for this is not too much of an issue. The only real issue is the time it takes to calculate the average derivative when using a large mini batch, so a compromise must be achieved. We should plot the validation accuracy versus real time elapsed, and choose the mini batch size which gives the best accuracy in the shortest time. Then, the remaining hyper parameters can be chosen.
+
+\subsubsection{Grid search}
+An expensive, but automated, way the find the optimal values is to do a simple grid search. We can try small intervals of all of the values for each parameter (presumably around some known `good' values for each parameter) and trial them to get the validation accuracy. We should use the values for parameters with the largest validation accuracy.
+
+\subsection{Other learning methods}
+\subsubsection{Hessian Technique}
+The cost $C$ is a function of the weights and biases $w_1,$ $w_2,...$, which we write as a vector $\textbf{w}$. Using multivariate Taylor's theorem, we get
+\[
+C(\textbf{w}+ \Delta \textbf{w}) = C(\textbf{w}) + \sum_i \frac{\partial C}{\partial w_i} \Delta w_i + \frac{1}{2} \sum_j \sum_i \Delta w_j \frac{\partial C}{\partial w_j \partial w_i} \Delta w_i + \dots 
+\]
+Encoded as matrices and ignoring other terms, this can be written
+\[
+C(\textbf{w}+ \Delta \textbf{w}) \approx C(\textbf{w}) + \nabla C  \Delta \textbf{w}  +  \frac{1}{2} \textbf{w}^{T}H\textbf{w}
+\]
+where $H$ is the Hessian matrix. Our aim is to minimise this expression through the choice of $\Delta\textbf{w}$. This is done by letting
+\[
+\Delta\textbf{w} = -H^{-1}\nabla C
+\]
+which makes the RHS be zero. Hence, our update is now
+\[
+\mathbf{w}_{k+1} = \mathbf{w}_k -H^{-1}\nabla C(\mathbf{w}_k) 
+\]
+In practice, this is sometimes too big of a step due to our approximations, so we can still use the learning rate. The problem is that computing the Hessian can be incredibly expensive, taking $\Theta(n^2)$ memory, so isn't always the most practical method.
+
+\subsubsection{Moment based gradient descent}
+We will perform gradient descent using similar principles as in real life: thinking of a ball falling into a valley, the ball will fall quickly for steep gradients, encounter resistance, carry velocity and momentum which it will lose quickly when travelling uphill, etc. Hence, we introduce $\textbf{v}$ with terms corresponding to each term in $\textbf{w}$ (the weights and biases). We update them according to the rules
+\[
+\mathbf{v}_{k+1} = \mu \mathbf{v}_k - \eta \nabla C(\mathbf{w}_k) 
+\]
+and
+\[
+\mathbf{w}_{k+1} = \mathbf{w}_k + \mathbf{v}_{k+1}
+\]
+where $\mu$ is a hyper parameter of friction which is called the \textit{momentum coefficient}. We think of $-\mu \nabla C$ as the force applied to the ball in the cost valley. It is relatively easy to see why this produces a system similar to our intuitive understanding of a ball in a valley. If $\mu = 0$, we are in the case of our usual gradient descent, with a lot of friction. Also, when $\mu = 1$, our system has no friction. We optimise $\mu$ as a hyper parameter just as we do with the others. To implement this, we introduce
+\begin{lstlisting}[language=Python, breaklines, basicstyle=\small]
+self.Bvelocity = [np.zeros((sizes[n+1], 1)) for n in range(len(sizes)-1)]
+self.Wvelocity = [np.zeros((sizes[n+1], sizes[n])) for n in range(len(sizes)-1)]
+\end{lstlisting}
+and in the SGD, after introducing the new parameter mu, we update according to the rules
+\begin{lstlisting}[language=Python, breaklines, basicstyle=\small]
+self.Bvelocity = [mu*v-eta*Cb for v, Cb in zip(self.Bvelocity, dCdb)]
+self.Wvelocity = [mu*v-eta*Cw for v, Cw in zip(self.Wvelocity, dCdw)]
+self.biases = [b+vb for b, vb in zip(self.biases, self.Bvelocity)]
+self.weights = [w+vw for w, vw in zip(self.weights, self.Wvelocity)]
+\end{lstlisting}
+
+
+\subsubsection{Other neuron functions}
+We need not always use the sigmoid neuron. Another choice is $\tanh$ neuron. This has a relationship with the sigmoid function as
+\[
+\sigma(z)=\frac{1+\tanh(\frac{z}{2})}{2}
+\]
+So, instead of having outputs in the range of 0 and 1, it has outputs in the range -1 and 1. There are some cases where this function will be learn quicker than the sigmoid neuron, though it is unknown when this will be the case. \par
+Another neuron function is the \textit{rectified linear neuron} given by
+\[
+\max(0,\mathbf{w} \cdot \mathbf{x}+ b)
+\]
+This has some advantages, as increasing the weighted input to a rectified linear neuron will never cause it to saturated.
+
+\section{Attempted Examples}
+In this section, I attempt to use the neural network to learn the recognise the gender of a person by their voice. Though firstly, I try Nielsen's MNSIT digit set. Sadly, my network could not reach the accuracies of Nielsen - when introducing any hidden layers, the programme suffered errors from overflow using exp/log/sqrt which prevented learning. I'm unsure why my code suffered from this and Nielsen's did not. Furthermore, I copied and pasted Nielsen's code and tried using his parameters in my IDE and still encountered the errors and never achieved his accuracy! So, this section won't actually be able to obtain any results since making the network to complicated structurally encounters these frustrating errors preventing learning. I'm not entirely sure whether the errors prevented learning (since np.clip could easily solve the problem), though I'm also unsure why Nielsen never encountered the problem (or never mentioned it if he did) like I did when I ran his code, or whether there was something else wrong. Learning was certainly occuring, though never at the rapid pace others achieved and never reaching such high levels of accuracies, despite trying many values for hyper parameters. Instead, I'll discuss very briefly my attempts at an example, and perhaps return to it at a later date. \par 
+Using a Kaggle dataset, we have data on 3,168 recorded voice samples (we will keep 350 for test data, 350 for validation data and 2468 for training data), collected from male and female speakers; the voice samples are pre-processed by acoustic analysis in R using the seewave and tuneR packages, with an analyzed frequency range of 0Hz-280Hz \cite{kaggle}. The information includes things such as details about frequency, kurtosis, skewness, etc. Precisely, we have 20 input values (so will have 20 input neurons). We will only need a 2 output neurons, each indicating the probability of the voice being male or female. Firstly, we must import this csv of data into python. We must have a list of tuples, each tuple having a vector of input values and a second entry of [0,1] or [1,0]. The following code completes this method.
+\begin{lstlisting}[language=Python, breaklines, basicstyle=\small]
+import csv
+with open('voice.csv', 'rt') as f:
+	reader = csv.reader(f)
+	all_data = [row for row in reader]
+	inputs = []
+	outputs = []
+	for i in range(len(all_data)):
+		inputs.append(np.transpose(np.array([[float(j) for j in all_data[i][:-2]]])))
+		outputs.append(np.transpose(np.array([[float(j) for j in all_data[i][-2:]]])))
+	data = [(inp, out) for inp, out in zip(inputs, outputs)]
+
+validation_data = data[0:350]
+test_data = data[350:700]
+training_data = data[700:]
+\end{lstlisting}
+Just as in Nielsen, we determine the learning rate using the training data and seeing which order of magnitude is largest and causes the cost of the training data to decrease smoothly. Using the cross entropy cost function and no regularisation, we acquire a reasonable value of $\eta = 0.01$ with this method. I also used the simplest network structure possible, 20 inputs and 2 output neurons with no hidden neurons, and mini batch size of the full training data. \par
+With no regularization parameter, our validation data has an accuracy of 200/350 after 100 epochs. Introducing any type regularisation didn't seem to increase the classification accuracy. \par
+At this point, I'd like to make the network have a more complicated structure, though this frequently gave the errors I discussed. I did see some marginal improvements using a hidden layer of 10 neurons, though the highest classification accuracy I ever managed to achieve was roughly 70$\%$, nowhere near high  classification accuracies (95$\%$ ore more) people have achieved. \par
+Neural networks can certainly be used to classify genders by voice. There are interesting kernels on the Kaggle thread using Tensorflow to devise a neural network which classifies them, and achieves a classification accuracy of 96$\%$. Perhaps this exercise has been useful if only to highlight the frustrations of finding hyper parameters (sometimes being so frustratingly time consuming to find optimal values that other machine learning methods become more useful, just because of how much quicker they are) and that using something such as Tensorflow is probably a better idea and more structured.
+
 
 \begin{thebibliography}{9}
 	\bibitem{nielsen}
@@ -392,6 +555,12 @@ Note the bias term remains unchanged. Nielsen gives another set of fantastic gra
 	``Neural Networks and Deep Learning'',
 	2017.
 	URL \url{http://neuralnetworksanddeeplearning.com/index.html}.
+	[Accessed: 6\textsuperscript{th} July 2017].
+
+	
+	\bibitem{kaggle}
+	Kaggle.
+	URL \url{https://www.kaggle.com/primaryobjects/voicegender}.
 	[Accessed: 6\textsuperscript{th} July 2017].
 \end{thebibliography}
 
